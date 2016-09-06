@@ -12,10 +12,10 @@ import random
 from synths import *
 import copy
 from composition import *
-s = pyo.Server(sr=44100).boot()
+s = pyo.Server().boot()
 class MCIAB(Composition):
     def __init__(self, nbchords, update_time=(60/96)*3,tick_nb=100000):
-        Composition.__init__(self, update_time, tick_nb)
+        Composition.__init__(self, update_time, tick_nb, self.play)
         
         #major scale
         self.scale = [0,2,4,5,7,9,11]
@@ -83,7 +83,7 @@ class MCIAB(Composition):
             notes = [ ( [Note(chord[i], 1/8)] ,) ,  ( [Note(chord[i], 1/16, 0) ,Note(chord[i], 1/16)], ) ]
             
             for j in range(2):
-                self.add_event(bar, self.chord[j][i].sequence.set_notes, notes[j])
+                self.add_event(bar, self.chord[j][i].set_notes, notes[j])
                 
     def generate_sections(self, current_bar):
         
@@ -95,8 +95,8 @@ class MCIAB(Composition):
                     start = random.randint(init_bar, final_bar-6)
                     while start in range(already_used, already_used+6):
                         start = random.randint(init_bar, final_bar-6)
-                    self.add_event(start, self.bass[0].set_notes, (Note(self.chord[:3], 1/16),) ) 
-                    self.add_event(start, self.pulses.set_notes, (Note(self.chord[3:], 1/16),) )     
+                    self.add_event(start, self.bass[0].set_notes, ([Note(random.choice(chord[:3]), 1/16)],))
+                    self.add_event(start, self.pulses.set_notes, ([Note(random.choice(chord[3:]), 1/16)],) )
                     self.add_event(start, self.bass[0].set_amp, (1, self.update_rate*2))
                     self.add_event(start, self.pulses.set_amp, (1, self.update_rate*2))
                     self.add_event(start+3, self.bass[0].set_amp, (0, self.update_rate*2))
@@ -166,13 +166,12 @@ class MCIAB(Composition):
                 (reverse_pattern, chord),
                 ]
             # one process randomly.
-            
             choice = random.choice(choices)
             current_bar = choice[0](current_bar, choice[1])
-            
+
             # last bar of the section
             final_bar = current_bar
-            
+
             # insert pulses randomly 0 to 2 times in the section.
             pulses(init_bar, final_bar, chord)
             if next_chord != None:
@@ -185,7 +184,6 @@ class MCIAB(Composition):
                 for i in range(2):
                     self.add_event(current_bar, self.pattern[i].set_amp, (0, self.update_rate*2))
                     current_bar +=2
-                
             return current_bar
         #generates the sections
         for i in range(len(self.chords)):
@@ -200,7 +198,7 @@ class MCIAB(Composition):
         indexes = [random.randint(2,7-(number-1)) for i in range(12)]
         melody = [ [ Note( (chord[indexes[i] - j]%12)+72, 1/16, self.rythm[i] ) for i in range(12) ] for j in range(number)]
         return melody
-        
+
     def alter_rythm(self):
         choice = random.randint(0,99)
         if choice < 15:
@@ -215,7 +213,6 @@ class MCIAB(Composition):
             self.rythm = self.rythm[-1::-1]
     def generate_intro(self, nbchords, current_bar=1, isoutro=False):
         current_chord = self.chords[0]
-        
         if not isoutro:
             # Absolute intro.
             self.change_chord(current_bar, current_chord)
@@ -228,7 +225,7 @@ class MCIAB(Composition):
                         self.add_event(current_bar+2, self.chord[j][i].set_pan, (0.95, self.update_rate))
                     self.add_event(current_bar, self.chord[j][i].set_pan, (0.05, self.update_rate))
             current_bar +=4
-          
+
         def generate_events(count, current_bar):
             #exclude the first chord of the chord change.
             if count !=0 or isoutro:
@@ -258,9 +255,9 @@ class MCIAB(Composition):
                     for j in range(2):
                         self.add_event(current_bar, self.chord[j][i].set_amp, (0,self.update_rate*3))
         return current_bar
-    
-    
-c = MCIAB(4)
+
+c = MCIAB(8)
+c.start()
 s.setAmp(0.4)
 
 s.start()
