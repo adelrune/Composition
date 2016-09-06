@@ -28,11 +28,8 @@ class BaseSynth:
         self.master_pan.setFallTime(time)
         self.pan.setValue(value)
         return self 
-    def set_notes(self, notes):
-        self.sequence = Sequence(notes).play()
-        self.trig = self.sequence.trigger
-        self.dur = self.sequence.time
-        self.freq = self.sequence.signal
+    def set_notes(self, notes, tempo=96):
+        self.sequence.set_notes(notes)
         
 class MarimbaSynth(BaseSynth):
     """Approximation de marimba à peu près décente."""
@@ -53,7 +50,7 @@ class MarimbaSynth(BaseSynth):
         self.trans_resonator = pyo.Biquad(self.trans_filter, q=31, freq=self.freq*4)
         self.panner = pyo.Pan((self.trans_resonator+self.osc).mix(0), mul=(0.1)*self.master_amp, pan=self.master_pan)
         self.last_audio_object = self.panner
-    def set_notes(self, notes):
+    def set_notes(self, notes, tempo=96):
         BaseSynth.set_notes(self,notes)
         self.trans_env_reader.input=self.trig
         self.env_reader.input=self.trig
