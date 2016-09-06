@@ -1,49 +1,44 @@
 # coding:utf-8
 from __future__ import division
-from pyo import TrigFunc, midiToHz, Sig, Trig, Metro
+from pyo import TrigFunc, midiToHz, Sig, Trig, Metro, Iter, Ceil
 import time as Time
-class Sequence:
-    """Sequence of midi notes and rythms """
 
-    def __init__(self, notes = [], tempo=96):
-        self.signal = Sig(0)
-        self.notes = notes
+class Sequence:
+    """Sequence of midi notes and rythms using the least amount of pure python as possible """
+
+    def __init__(self, notes=[], tempo=96):
+        self.notes = [note.frequency for note in notes]
+        self.times = [note.time(tempo) for note in notes]
+        self.amps = [note.amp for note in notes]
         self.tempo = tempo
-        self.index = 0
-        self.trigger = Trig()
-        self.time = Sig(0)
-        self.amp = Sig(0)
+        self._metro = Metro()
+        self.amp = Iter(self._metro, self.amps, init=self.amps[0])
+        self.time = Iter(self._metro, self.times, init=self.times[0])
+        self._metro.setTime(self.time)
+        self.signal = Iter(self._metro, self.notes)
+        #triggers are only sent when amp is >0
+        self.trigger = Ceil(self.amp*self._metro)
+
     def append(self, note):
-            self.notes.append(note)
-            
+        self.notes.append(note.frequency)
+        self.rythms.append(note.time(tempo))
+        self.amps.append(note.amp)
+
+        self.amp.setChoice(self.amps)
+        self.time.setChoice(self.times)
+        self.signal.setChoice(self.notes)
+
     def set_notes(self, notes):
-        prop = 0
-        
-        #self.index = len(self.notes)-1
-        while self.index != 0:
-            prop +=1
-        self._metro.stop()
-        self.notes = notes
-        self.index = 0
-        self._metro.setTime(self.notes[self.index].time(self.tempo))
-        self.amp = Sig(self.notes[self.index].amp)
-        
-        self._metro.play()
-        
-    def next(self):
-        self.amp = Sig(self.notes[self.index].amp)
-        self._metro.time = self.notes[self.index].time(self.tempo)
-        if self.amp.get() != 0:
-            self.trigger.play()
-            self.signal.setValue(self.notes[self.index].frequency())
-            self.time.setValue(self.notes[self.index].time(self.tempo))
-        self.index = (self.index + 1) % len(self.notes)
+        self.notes = [note.frequency for note in notes]
+        self.rythms = [note.time(self.tempo) for note in notes]
+        self.amps = [note.amp for note in notes]
+
+        self.amp.setChoice(self.amps)
+        self.time.setChoice(self.times)
+        self.signal.setChoice(self.notes)
 
     def play(self):
-        self._metro = Metro(self.notes[0].time(self.tempo))
-        self._func_caller = TrigFunc(self._metro, self.next)
         self._metro.play()
-        self.amp = Sig(1)
         return self
     def stop(self):
         self._metro.stop()
@@ -53,8 +48,7 @@ class Note:
         self.note = note
         self.duration = duration
         self.amp = amp
-    def frequency(self):
-        return midiToHz(self.note)
+        self.frequency = midiToHz(self.note)
 
     def time(self, tempo):
         return 60/(tempo / self.duration / 4)
