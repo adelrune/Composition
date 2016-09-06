@@ -4,7 +4,7 @@
 import pyo
 
 class Composition:
-    def __init__(self, update_rate, tick_nb):
+    def __init__(self, update_rate, tick_nb, init_funct):
         #Rate at which events are called.
         self.update_rate = update_rate
         #Metronome ticking at the update rate.
@@ -13,11 +13,11 @@ class Composition:
         self.counter = pyo.Counter(self.master_metro, min=0, max=tick_nb)
         #Calls the events at the current counter position every update tick
         self.event_tf = pyo.TrigFunc(self.master_metro, self._call_event)
-        #Do I really need this ? (Calls play the first time the counter is ticked.
-        self.init_tf = pyo.TrigFunc(pyo.Select(self.counter, value=0), self.play)
+        #Calls the init function as soo as .
+        self.init_tf = pyo.TrigFunc(pyo.Select(self.counter, value=0), init_funct)
         #Dictionary containing lists of tuples (function_to_call, args*) at [tick_nb].
         self.structure = {}
-        #Starts the master metronome which immediately calls the self.play() fuction
+
         self.master_metro.play()
 
     
@@ -35,7 +35,6 @@ class Composition:
         if key in self.structure.keys():
             for func in self.structure[key]:
                 func[0](*func[1])
-
-    def play(self):
-        """Should Initialize everything that needs to be. Override it !"""
-        pass
+    def start(self):
+        """Starts the master metronome which immediately calls the initialisation fuction"""
+        self.master_metro.play()
