@@ -27,10 +27,10 @@ class BaseSynth:
         self.master_pan.setRiseTime(time)
         self.master_pan.setFallTime(time)
         self.pan.setValue(value)
-        return self 
+        return self
     def set_notes(self, notes, tempo=96):
         self.sequence.set_notes(notes)
-        
+
 class MarimbaSynth(BaseSynth):
     """Approximation de marimba à peu près décente."""
     def __init__(self, sequence, amp=1, pan=0.5):
@@ -39,10 +39,10 @@ class MarimbaSynth(BaseSynth):
         self.env_reader = pyo.TrigEnv(self.trig, self.env, dur=pyo.Max(self.dur, comp=0.3125))
         self.sine_freqs = []
         for i in range(-1,1):
-            self.sine_freqs.extend([self.freq*(1+0.001*i), self.freq*2*(1+0.002*i), self.freq*3*(1+0.002*i),self.freq*5*(1+0.002*i)]) 
-            
+            self.sine_freqs.extend([self.freq*(1+0.001*i), self.freq*2*(1+0.002*i), self.freq*3*(1+0.002*i),self.freq*5*(1+0.002*i)])
+
         self.osc = pyo.Sine(freq=self.sine_freqs, mul=[self.env_reader, self.env_reader*0.2, self.env_reader*0.2, self.env_reader*0.1]*3)
-         
+
         self.trans_env = pyo.CosTable([(0,0.0000),(123,0.0777),(812,0.0570),(2083,0.0052),(8000,0.0000)])
         self.trans_env_reader = pyo.TrigEnv(self.trig, self.trans_env, dur=0.25)
         self.trans = pyo.Noise(mul=self.trans_env_reader)
@@ -56,8 +56,8 @@ class MarimbaSynth(BaseSynth):
         self.env_reader.input=self.trig
         sine_freqs = []
         for i in range(-1,1):
-            sine_freqs.extend([self.freq*(1+0.001*i), self.freq*2*(1+0.002*i), self.freq*3*(1+0.002*i),self.freq*5*(1+0.002*i)]) 
-        
+            sine_freqs.extend([self.freq*(1+0.001*i), self.freq*2*(1+0.002*i), self.freq*3*(1+0.002*i),self.freq*5*(1+0.002*i)])
+
         self.osc.freq = sine_freqs
         self.trans_resonator.freq = self.freq*4
         self.env_reader.dur = pyo.Max(self.dur, comp=0.3125)
@@ -70,10 +70,10 @@ class PianoSynth(BaseSynth):
         sine_freqs = []
         for i in range(-1,1):
             freqs = [self.freq*j*(1+0.008*i) for j in range(1,8)]
-            sine_freqs.extend(freqs) 
+            sine_freqs.extend(freqs)
         harm_amps = [1,0.3,0.4,0.2,0.1,0.04,0.04,0.03,0.02]
         self.osc = pyo.Sine(freq=sine_freqs, mul=[self.env_reader*harm_amps[i] for i in range(8)])
-         
+
         self.trans_env = pyo.ExpTable([(0,0.3938),(8192,0.0000)])
         self.trans_env_reader = pyo.TrigEnv(self.trig, self.trans_env, dur=0.25)
         self.trans = pyo.Noise(mul=self.trans_env_reader)
@@ -90,7 +90,7 @@ class PianoSynth(BaseSynth):
         sine_freqs = []
         for i in range(-1,1):
             freqs = [self.freq*j*(1+0.008*i) for j in range(1,8)]
-            sine_freqs.extend(freqs) 
+            sine_freqs.extend(freqs)
         self.osc.freq = sine_freqs
         self.trans_resonator.delay = self.freq**-1
         self.env_reader.dur = pyo.Max(self.dur, comp=0.3125)
@@ -100,19 +100,19 @@ class BassClarSynth(BaseSynth):
         BaseSynth.__init__(self, sequence, amp, pan)
         self.env = pyo.CosTable([(0,0.0000),(953,1.0000),(5737,0.7254),(8192,0.0000)])
         self.env_reader = pyo.TrigEnv(self.trig, self.env, dur=pyo.Max(self.dur, comp=0.3125))
-        self.osc = pyo.LFO(type=2, freq=pyo.Noise().range(0.7*self.freq,1.3*self.freq), mul=0.5*self.env_reader)
+        self.osc = pyo.LFO(type=2, freq=pyo.Noise(add=1, mul=0.3*self.freq), mul=0.5*self.env_reader)
         self.pre_filter = pyo.Biquad(self.osc, freq=191)
         self.disto_env = pyo.CosTable([(0,0.0000),(2118,0.2694),(8192,0.0000)])
         self.disto_env_reader = pyo.TrigEnv(self.trig, self.disto_env, dur=self.dur, add=0.7)
         self.disto = pyo.Disto(self.pre_filter, drive=self.disto_env_reader, mul=0.3)
         self.freq_env = pyo.CosTable([(0,0.0000),(1553,0.4767),(8192,0.0000)])
-        self.freq_env_reader = pyo.TrigEnv(self.trig, self.freq_env, dur=self.dur, add=1000, mul=200) 
+        self.freq_env_reader = pyo.TrigEnv(self.trig, self.freq_env, dur=self.dur, add=1000, mul=200)
         self.res_filter = pyo.Biquad(pyo.BrownNoise(mul=self.env_reader), q=6, freq=self.freq_env_reader, mul=0.9, type=2)
         self.panner = pyo.Pan(self.disto+self.res_filter, mul=self.master_amp, pan=self.master_pan)
         self.last_audio_object = self.panner
     def set_notes(self, notes):
         BaseSynth.set_notes(self,notes)
-        self.osc.freq = pyo.Noise().range(0.7*self.freq,1.3*self.freq)
+        self.osc.freq = pyo.Noise(add=1, mul=0.3*self.freq)
         self.env_reader.input=self.trig
         self.env_reader.dur = pyo.Max(self.dur, comp=0.3125)
         self.disto_env_reader.dur = self.dur
@@ -166,11 +166,11 @@ class VibeSynth(BaseSynth):
         self.index_env_reader.input=self.trig
         self.index_env_reader.dur = self.dur
         self.trans_env_reader.input = self.trig
-        
-#Tests.        
+
+#Tests.
 if __name__ == "__main__":
-    
-    
+
+
     def play_test():
         seqs = [Sequence([Note(56,1/8)]).play(), Sequence([Note(63,1/8)]).play(), Sequence([Note(68,1/8)]).play(), Sequence([Note(67,1/8)]).play()]
         seq3 = Sequence([Note(44,1/16)]).play()
@@ -212,8 +212,8 @@ if __name__ == "__main__":
         for ms in m:
             ms.set_amp(0.0, 2)
         time.sleep(9)
-        
-        
+
+
     s = pyo.Server().boot()
     s.start()
     s.setAmp(0.8)
